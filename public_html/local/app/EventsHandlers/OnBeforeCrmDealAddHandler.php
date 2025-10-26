@@ -48,6 +48,7 @@ class OnBeforeCrmDealAddHandler
                 );
 
                 $GLOBALS['APPLICATION']->ThrowException($errorMessage);
+                $arFields['RESULT_MESSAGE'] = 'Есть заказ сделка по VIN этого авто не закрытая по ссылке';
                 return false;
             }
 
