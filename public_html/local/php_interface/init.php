@@ -7,33 +7,41 @@ use Bitrix\Main\Page\Asset;
 use \Bitrix\Crm\Service\Container;
 use Bitrix\Crm\DealTable;
 
+if (file_exists(__DIR__ . '/../../vendor/autoload.php')) {
+    require_once __DIR__ . '/../../vendor/autoload.php';
+}
+
+if (file_exists(__DIR__ . '/../app/autoloader.php')) {
+    require_once __DIR__ . '/../app/autoloader.php';
+}
+
 
 $eventManager = \Bitrix\Main\EventManager::getInstance();
 
 $eventManager->addEventHandlerCompatible(
     'crm',
     'OnBeforeCrmDealAdd',
-    /*['EventsHandlers\OnBeforeCrmDealAddCheck','checkDuplicateDealByVin']*/
     function (&$arFields) {
-        $vinFieldCode = 'UF_CRM_DEAL_VIN';
+        $vinFieldCode = 'C1:'.$arFields['UF_CRM_DEAL_VIN'];
 
         $existingDeal = DealTable::getList([
             'select' => ['ID', 'TITLE', 'STAGE_ID'],
             'filter' => [
-                '=' . $vinFieldCode => $arFields[$vinFieldCode],
-                '!=STAGE_ID' => [
-                    'WON',    // Успешно завершена
-                    'LOSE',   // Закрыта и не реализована
-                    'CANCELED'// Отменена
-                ]
+                'UF_CRM_DEAL_VIN' => $arFields['UF_CRM_DEAL_VIN'],
+                '!=STAGE_ID' => ['C1:WON']
             ],
-            'limit' => 1
+           // 'limit' => 1
         ])->fetchAll();
 
+
+        $log = date('Y-m-d H:i:s') . ' ' . print_r( $existingDeal, true);
+        file_put_contents(__DIR__ . '/log.txt', $log . PHP_EOL, FILE_APPEND);
+
         if (!empty($existingDeal)) {
-            $arFields['RESULT_MESSAGE'] = 'Невозможно создать новую заказ-сделку. Есть не закрытая заказ-сделка авто с таким же VIN кодом  '.$arFields[$vinFieldCode].' Необходимо ее закрыть';
+            $arFields['RESULT_MESSAGE'] = 'Невозможно создать новую заказ-сделку. Есть не закрытая заказ-сделка авто с таким же VIN кодом  '.$arFields['UF_CRM_DEAL_VIN'].' Необходимо ее закрыть';
+            return false;
         }
-        return false;
+
     }
 );
 
